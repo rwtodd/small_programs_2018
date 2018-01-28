@@ -1,2 +1,4 @@
 # small_programs_2018
-2018 small programs that don't deserve their own repo
+
+This is for small programs that don't deserve their own repo.  Each
+directory should have its own readme.  Enjoy!

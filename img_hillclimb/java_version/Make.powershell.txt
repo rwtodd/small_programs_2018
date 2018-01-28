@@ -1,0 +1,5 @@
+javac -d mods --module-path=C:\Users\richa\Documents\jmod --module-source-path=src (gci . -Recurse -File -Include *.java)
+
+jar --create --file=mlib\com.darktalents.cmd.toys.imhc.jar -e com.darktalents.cmd.toys.imhc.Cmd -C .\mods\com.darktalents.cmd.toys.imhc .
+
+java -p "mlib;C:\Users\richa\Documents\jmod" -m com.darktalents.cmd.toys.imhc  ...
