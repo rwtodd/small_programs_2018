@@ -34,30 +34,50 @@ def get_colors(img):
     """pull the colors out of an image"""
     return [ c[1] for c in img.getcolors(img.size[0]*img.size[1]) ]
 
-def random_ellipse(img, colors):
+def random_shape(img, colors, func):
     """draw a random ellipse into IMG in one of the color from COLORS"""
     x,y = img.size
     d = ImageDraw.Draw(img)
     ulx, uly = random.randrange(x), random.randrange(y)
     wid,ht = random.randrange(1, x // 10), random.randrange(1, y // 10)
-    d.ellipse([ulx,uly,ulx+wid,uly+ht],fill=random.choice(colors))
+    func(d,[ulx,uly,ulx+wid,uly+ht],random.choice(colors))
     del d
     
-def hill_climb(img, tgtarr, colors, best_err, tries):
+def draw_arc(d, bbox, color):
+    a1 = random.randrange(350)
+    a2 = random.randrange(a1+1, 360)
+    d.arc(bbox, a1, a2, fill=color)
+    
+def draw_line(d,bbox,color):
+    if random.randrange(2) == 1:
+       bbox[0],bbox[2] = bbox[2], bbox[0]
+    d.line(bbox, width=random.randrange(1,3), fill=color),
+
+drawers = {
+  'filled_ellipse': lambda d,b,c: d.ellipse(b,fill=c),
+  'ellipse': lambda d,b,c: d.ellipse(b,outline=c),
+  'rectangle': lambda d,b,c: d.rectangle(b,outline=c),
+  'filled_rectangle': lambda d,b,c: d.rectangle(b,fill=c),
+  'line': draw_line,
+  'downleft_line': lambda d,b,c: d.line(b, width=random.randrange(1,3), fill=c),
+  'arc': draw_arc,
+}
+
+def hill_climb(img, tgtarr, colors, best_err, tries, drawfunc):
     """Start from IMG (which has error BEST_ERR, hill-climb toward TGTARR, 
        using COLORS. Try adding ellipsees TRIES times."""
     for _ in range(tries):
         scratch = img.copy()
-        random_ellipse(scratch, colors)
+        random_shape(scratch, colors, drawfunc)
         cur_err = rms_err(np.array(scratch, dtype=np.uint16),tgtarr)
         if cur_err < best_err:
            img = scratch
            best_err = cur_err
     return (img, best_err)
 
-def hill_climb_worker(tgtp, mgr, ellipses, start_img, start_err):
+def hill_climb_worker(tgtp, mgr, each, start_img, start_err, shape):
     """control a worker for image TGTP and pipe MGR. Start with START_IMG+START_ERR
-       and generate ELLIPSES ellipses at a time."""
+       and generate EACH SHAPEs at a time."""
     # set up, and delete unneeded large objects
     random.seed()
     tgt = unpickle_img(tgtp)
@@ -68,9 +88,11 @@ def hill_climb_worker(tgtp, mgr, ellipses, start_img, start_err):
     img = unpickle_img(start_img)
     del start_img
     best_err = start_err
+    drawfunc = drawers[shape]
+
     # hill-climb and loop
     while True:
-        img, nerr = hill_climb(img, tgtarr, colors, best_err, ellipses)
+        img, nerr = hill_climb(img, tgtarr, colors, best_err, each, drawfunc)
         if nerr < best_err:
            best_err = nerr
            mgr.send( (pickle_img(img), best_err) )
@@ -83,8 +105,8 @@ def hill_climb_worker(tgtp, mgr, ellipses, start_img, start_err):
            img, best_err = unpickle_img(nimg), n_err
 
 
-def manage_workers(tgt, starting_point, procs, iters, ellipses):
-    """Create PROCS workers, each of which will generate ELLIPSES ellipses at
+def manage_workers(tgt, starting_point, procs, iters, each, shape):
+    """Create PROCS workers, each of which will generate EACH SHAPEs at
        a time for ITERS iterations.  Start from STARTING_POINT and hill-climb
        towrad TGT."""
     pipes = [] 
@@ -97,7 +119,7 @@ def manage_workers(tgt, starting_point, procs, iters, ellipses):
        pcon, ccon = mult.Pipe()
        pipes.append(pcon)
        proc = mult.Process(target=hill_climb_worker,
-                           args=(ptgt, ccon, ellipses, best_img, best_err))
+                           args=(ptgt, ccon, each, best_img, best_err, shape))
        jobs.append(proc)
        print(f"Created job {jno}")
        proc.start()
@@ -124,17 +146,17 @@ def manage_workers(tgt, starting_point, procs, iters, ellipses):
 
 if __name__=='__main__':
   import argparse
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument("target", help="the target image to recreate")
-  parser.add_argument("-s","--start", help="image to use as the starting point of the search")
-  parser.add_argument("-i","--iterations", help="number of iterations to run (default 30)")
-  parser.add_argument("-e","--ellipses", help="number of ellispses to try per iteration (default 1000)")
-  parser.add_argument("-j", "--jobs", help="how many processes to launch (default 2)")
+  parser.add_argument("-s", dest="start", help="image to use as the starting point of the search")
+  parser.add_argument("-i", dest="iterations", type=int, default=30, help="number of iterations to run")
+  parser.add_argument("-e", dest="each", type=int, default=1000, help="number of shapes to try per iteration")
+  parser.add_argument("-d", dest="shape", choices=list(drawers.keys()), default="filled_ellipse", help="the type of shape to draw")
+  parser.add_argument("-j", dest="jobs", type=int, default=2, help="how many processes to launch")
   args = parser.parse_args()
 
   myimg = Image.open(args.target).convert('RGB')
   starter = args.start and Image.open(args.start).convert('RGB') or same_size_blank(myimg)
-  procs = args.jobs and int(args.jobs) or 2 
-  iterations = args.iterations and int(args.iterations) or 30
-  ellipses = args.ellipses and int(args.ellipses) or 1000
-  manage_workers(myimg, starter, procs, iterations, ellipses)
+  manage_workers(myimg, starter, args.jobs, args.iterations, args.each, args.shape)
+
+
