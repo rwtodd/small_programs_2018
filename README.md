@@ -2,3 +2,8 @@
 
 This is for small programs that don't deserve their own repo.  Each
 directory should have its own readme.  Enjoy!
+
+ - __asciipic__: Convert images to ASCII on the terminal
+ - __bascat__: Convert tokenized `GWBASIC`/`BASICA` files to plain text
+ - __img\_hillclimb__: Generate an approximation of an image via random shapes
+ 
