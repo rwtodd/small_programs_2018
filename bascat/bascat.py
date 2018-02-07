@@ -49,7 +49,7 @@ class _Reader:
       while n > 0:
           nxt = self.f.read(n)
           amt = len(nxt)
-          if amt == 0: raise ValueError('Early EOF!')
+          if amt == 0: raise IOError('Early EOF!')
           data += nxt
           n -= amt
       return data 
@@ -135,8 +135,6 @@ def _get_token(rdr):
     nxt = rdr.read_u8()
     if nxt >= 0x20 and nxt <= 0x7E:
        return _Token.from_string(nxt,chr(nxt))
-    elif nxt >= 0x11 and nxt <= 0x1B:
-       return _Token.from_number(nxt - 0x11, 10)
     elif nxt >= 0xFD and nxt <= 0xFF:
        return _Token.from_opcode( (nxt << 8) | rdr.read_u8() )
     elif nxt == 0x0E:
@@ -209,6 +207,17 @@ def gwbas_lines(fn):
 
 _opcodes = {
     0x00: "EOL",
+    0x11: "0",
+    0x12: "1",
+    0x13: "2",
+    0x14: "3",
+    0x15: "4",
+    0x16: "5",
+    0x17: "6",
+    0x18: "7",
+    0x19: "8",
+    0x1A: "9",
+    0x1B: "10",
 	0x81: "END",
 	0x82: "FOR",
 	0x83: "NEXT",
