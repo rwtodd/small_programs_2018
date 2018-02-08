@@ -53,16 +53,12 @@ drawers = {
 }
 
 def hill_climb(img, tgtarr, colors, tries, drawfunc):
-    """Start from IMG (which has error BEST_ERR, hill-climb toward TGTARR, 
-       using COLORS. Try adding ellipsees TRIES times."""
-
-    # print(f'TGT SIZE tgtarr {tgtarr.shape}')
+    """Start from IMG, hill-climb toward TGTARR, 
+       using COLORS. Try adding shapes with DRAWFUNC TRIES times."""
     for _ in range(tries):
         bbox = random_bbox(img)
         scratch = img.crop(bbox)
         subtgt  = tgtarr[ bbox[1]:bbox[3], bbox[0]:bbox[2], : ]
-        # scar = np.array(scratch, dtype=np.uint16)
-        # print(f'FOR {bbox}: scratch {scratch.size}, scar {scar.shape} and subtgt {subtgt.shape}')
         cur_err = rms_err(np.array(scratch, dtype=np.uint16), subtgt)
         random_shape(scratch, colors, drawfunc)
         new_err = rms_err(np.array(scratch, dtype=np.uint16), subtgt)
@@ -94,7 +90,7 @@ if __name__=='__main__':
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument("target", help="the target image to recreate")
   parser.add_argument("-s", dest="start", help="image to use as the starting point of the search")
-  parser.add_argument("-i", dest="iterations", type=int, default=30, help="number of iterations to run")
+  parser.add_argument("-i", dest="iterations", type=int, default=100, help="number of iterations to run")
   parser.add_argument("-e", dest="each", type=int, default=1000, help="number of shapes to try per iteration")
   parser.add_argument("-d", dest="shape", choices=list(drawers.keys()), default="filled_ellipse", help="the type of shape to draw")
   args = parser.parse_args()

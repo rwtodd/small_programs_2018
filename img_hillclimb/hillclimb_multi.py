@@ -34,13 +34,18 @@ def get_colors(img):
     """pull the colors out of an image"""
     return [ c[1] for c in img.getcolors(img.size[0]*img.size[1]) ]
 
+def random_bbox(img):
+    """generate random bounding-box inside the img"""
+    x,y = img.size
+    ulx, uly = random.randrange(x-1), random.randrange(y-1)
+    wid,ht = random.randrange(1, x // 10), random.randrange(1, y // 10)
+    return [ulx,uly,min(x,ulx+wid),min(uly+ht,y)]
+
 def random_shape(img, colors, func):
     """draw a random ellipse into IMG in one of the color from COLORS"""
     x,y = img.size
     d = ImageDraw.Draw(img)
-    ulx, uly = random.randrange(x), random.randrange(y)
-    wid,ht = random.randrange(1, x // 10), random.randrange(1, y // 10)
-    func(d,[ulx,uly,ulx+wid,uly+ht],random.choice(colors))
+    func(d,[0,0,x,y],random.choice(colors))
     del d
     
 def draw_arc(d, bbox, color):
@@ -63,16 +68,19 @@ drawers = {
   'arc': draw_arc,
 }
 
-def hill_climb(img, tgtarr, colors, best_err, tries, drawfunc):
-    """Start from IMG (which has error BEST_ERR, hill-climb toward TGTARR, 
-       using COLORS. Try adding ellipsees TRIES times."""
+def hill_climb(img, tgtarr, colors, tries, drawfunc):
+    """Start from IMG, hill-climb toward TGTARR, 
+       using COLORS. Try adding shapes with DRAWFUNC TRIES times."""
     for _ in range(tries):
-        scratch = img.copy()
+        bbox = random_bbox(img)
+        scratch = img.crop(bbox)
+        subtgt  = tgtarr[ bbox[1]:bbox[3], bbox[0]:bbox[2], : ]
+        cur_err = rms_err(np.array(scratch, dtype=np.uint16), subtgt)
         random_shape(scratch, colors, drawfunc)
-        cur_err = rms_err(np.array(scratch, dtype=np.uint16),tgtarr)
-        if cur_err < best_err:
-           img = scratch
-           best_err = cur_err
+        new_err = rms_err(np.array(scratch, dtype=np.uint16), subtgt)
+        if new_err < cur_err:
+           img.paste(scratch,(bbox[0],bbox[1]))
+    best_err = rms_err(np.array(img, dtype=np.uint16), tgtarr)
     return (img, best_err)
 
 def hill_climb_worker(tgtp, mgr, each, start_img, start_err, shape):
@@ -92,7 +100,7 @@ def hill_climb_worker(tgtp, mgr, each, start_img, start_err, shape):
 
     # hill-climb and loop
     while True:
-        img, nerr = hill_climb(img, tgtarr, colors, best_err, each, drawfunc)
+        img, nerr = hill_climb(img, tgtarr, colors, each, drawfunc)
         if nerr < best_err:
            best_err = nerr
            mgr.send( (pickle_img(img), best_err) )
@@ -149,10 +157,10 @@ if __name__=='__main__':
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   parser.add_argument("target", help="the target image to recreate")
   parser.add_argument("-s", dest="start", help="image to use as the starting point of the search")
-  parser.add_argument("-i", dest="iterations", type=int, default=30, help="number of iterations to run")
-  parser.add_argument("-e", dest="each", type=int, default=1000, help="number of shapes to try per iteration")
+  parser.add_argument("-i", dest="iterations", type=int, default=100, help="number of iterations to run")
+  parser.add_argument("-e", dest="each", type=int, default=5000, help="number of shapes to try per iteration")
   parser.add_argument("-d", dest="shape", choices=list(drawers.keys()), default="filled_ellipse", help="the type of shape to draw")
-  parser.add_argument("-j", dest="jobs", type=int, default=2, help="how many processes to launch")
+  parser.add_argument("-j", dest="jobs", type=int, default=3, help="how many processes to launch")
   args = parser.parse_args()
 
   myimg = Image.open(args.target).convert('RGB')
