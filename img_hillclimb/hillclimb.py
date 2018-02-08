@@ -18,13 +18,18 @@ def get_colors(img):
     """pull the colors out of an image"""
     return [ c[1] for c in img.getcolors(img.size[0]*img.size[1]) ]
 
+def random_bbox(img):
+    """generate random bounding-box inside the img"""
+    x,y = img.size
+    ulx, uly = random.randrange(x-1), random.randrange(y-1)
+    wid,ht = random.randrange(1, x // 10), random.randrange(1, y // 10)
+    return [ulx,uly,min(x,ulx+wid),min(uly+ht,y)]
+
 def random_shape(img, colors, func):
     """draw a random ellipse into IMG in one of the color from COLORS"""
     x,y = img.size
     d = ImageDraw.Draw(img)
-    ulx, uly = random.randrange(x), random.randrange(y)
-    wid,ht = random.randrange(1, x // 10), random.randrange(1, y // 10)
-    func(d,[ulx,uly,ulx+wid,uly+ht],random.choice(colors))
+    func(d,[0,0,x,y],random.choice(colors))
     del d
     
 def draw_arc(d, bbox, color):
@@ -47,16 +52,23 @@ drawers = {
   'arc': draw_arc,
 }
 
-def hill_climb(img, tgtarr, colors, best_err, tries, drawfunc):
+def hill_climb(img, tgtarr, colors, tries, drawfunc):
     """Start from IMG (which has error BEST_ERR, hill-climb toward TGTARR, 
        using COLORS. Try adding ellipsees TRIES times."""
+
+    # print(f'TGT SIZE tgtarr {tgtarr.shape}')
     for _ in range(tries):
-        scratch = img.copy()
+        bbox = random_bbox(img)
+        scratch = img.crop(bbox)
+        subtgt  = tgtarr[ bbox[1]:bbox[3], bbox[0]:bbox[2], : ]
+        # scar = np.array(scratch, dtype=np.uint16)
+        # print(f'FOR {bbox}: scratch {scratch.size}, scar {scar.shape} and subtgt {subtgt.shape}')
+        cur_err = rms_err(np.array(scratch, dtype=np.uint16), subtgt)
         random_shape(scratch, colors, drawfunc)
-        cur_err = rms_err(np.array(scratch, dtype=np.uint16),tgtarr)
-        if cur_err < best_err:
-           img = scratch
-           best_err = cur_err
+        new_err = rms_err(np.array(scratch, dtype=np.uint16), subtgt)
+        if new_err < cur_err:
+           img.paste(scratch,(bbox[0],bbox[1]))
+    best_err = rms_err(np.array(img, dtype=np.uint16), tgtarr)
     return (img, best_err)
 
 def manage_work(tgt, best_img, iters, each, shape):
@@ -70,7 +82,7 @@ def manage_work(tgt, best_img, iters, each, shape):
     print(f"Starting with an error of {best_err}")
 
     for counter in range(iters):
-       best_img, best_err = hill_climb(best_img, tgtarr, colors, best_err, each, drawfunc)
+       best_img, best_err = hill_climb(best_img, tgtarr, colors, each, drawfunc)
        print(f"Iteration {counter} err is {best_err}")
        if (counter % 10) == 0: 
           best_img.save(f'out_{counter}.png')
