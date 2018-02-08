@@ -90,7 +90,8 @@ def full_palette(pal):
     return newp
 
 def cgaify(src_file, palname):
-    """Convert IMG to use palette PAL, saving the converted file."""
+    """Convert the image in SRC_FILE to use palette named PALNAME, 
+       saving the converted file."""
     img = Image.open(src_file)
     fullp = full_palette(PALETTES[palname])
     palimg = Image.new('P',(1,1))
