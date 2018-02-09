@@ -64,6 +64,35 @@ final class ImageUtil {
      return new BufferedImage(tgt.getWidth(), tgt.getHeight(), BufferedImage.TYPE_INT_RGB);
   }
 
+  /** Add an arc to a copy of SRC, returning the result */
+  final static BufferedImage addArc(final BufferedImage src, final Color color) {
+      final Random rnd = ThreadLocalRandom.current();
+      BufferedImage result = sameSizeEmpty(src);
+      Graphics2D g = result.createGraphics();
+      g.drawImage(src, 0, 0, null);
+      g.setPaint(color);
+      g.drawArc(0,0,src.getWidth()-1, src.getHeight()-1, rnd.nextInt(360), rnd.nextInt(300)+1);
+      g.dispose();
+      return result;
+  }
+
+  /** Add a line to a copy of SRC, returning the result */
+  final static BufferedImage addLine(final BufferedImage src, final Color color) {
+      final Random rnd = ThreadLocalRandom.current();
+      BufferedImage result = sameSizeEmpty(src);
+      Graphics2D g = result.createGraphics();
+      g.drawImage(src, 0, 0, null);
+      g.setPaint(color);
+      if(rnd.nextBoolean()) {
+         g.drawLine(0, 0, src.getWidth()-1, src.getHeight()-1);
+      } else {
+         g.drawLine(src.getWidth()-1, 0, 0, src.getHeight()-1);
+      }
+      g.dispose();
+      return result;
+  }
+
+
   /** Add a down-from-the-left line to a copy of SRC, returning the result */
   final static BufferedImage addDownLeftLine(final BufferedImage src, final Color color) {
       BufferedImage result = sameSizeEmpty(src);
@@ -85,6 +114,7 @@ final class ImageUtil {
       return result;
   }
 
+
   /** Add a rectangle to a copy of  SRC, returning the result. */
   final static BufferedImage addRectangle(final BufferedImage src, final Color color) {
       BufferedImage result = sameSizeEmpty(src);
@@ -96,6 +126,49 @@ final class ImageUtil {
       return result;
   }
 
+  /** Add a filled circle to a copy of  SRC, returning the result. */
+  final static BufferedImage addFilledCircle(final BufferedImage src, final Color color) {
+      final Random rnd = ThreadLocalRandom.current();
+      BufferedImage result = sameSizeEmpty(src);
+      Graphics2D g = result.createGraphics();
+      g.drawImage(src, 0, 0, null);
+      g.setPaint(color);
+      final int srcWidth = src.getWidth();
+      final int srcHeight = src.getHeight();
+      final int diameter = Math.min(srcWidth, srcHeight);
+      int x = 0; int y = 0;
+      if(srcWidth > diameter) {
+         x = rnd.nextInt(srcWidth - diameter);
+      }
+      if(srcHeight > diameter) {
+         y = rnd.nextInt(srcHeight - diameter);
+      }
+      g.fillOval( x, y, diameter, diameter);
+      g.dispose();
+      return result;
+  }
+
+  /** Add a circle to a copy of  SRC, returning the result. */
+  final static BufferedImage addCircle(final BufferedImage src, final Color color) {
+      final Random rnd = ThreadLocalRandom.current();
+      BufferedImage result = sameSizeEmpty(src);
+      Graphics2D g = result.createGraphics();
+      g.drawImage(src, 0, 0, null);
+      g.setPaint(color);
+      final int srcWidth = src.getWidth();
+      final int srcHeight = src.getHeight();
+      final int diameter = Math.min(srcWidth, srcHeight);
+      int x = 0; int y = 0;
+      if(srcWidth > diameter) {
+         x = rnd.nextInt(srcWidth - diameter);
+      }
+      if(srcHeight > diameter) {
+         y = rnd.nextInt(srcHeight - diameter);
+      }
+      g.drawOval( x, y, diameter, diameter);
+      g.dispose();
+      return result;
+  }
 
   /** Add an ellipse to a copy of  SRC, returning the result. */
   final static BufferedImage addEllipse(final BufferedImage src, final Color color) {
@@ -227,11 +300,17 @@ final class HillClimber implements Callable<Results> {
 public final class Cmd {
 
   static final Map<String,BiFunction<BufferedImage,Color,BufferedImage>> drawers = 
-      Map.of("filled_ellipse", ImageUtil::addFilledEllipse,
-             "downleft_line", ImageUtil::addDownLeftLine,
-             "rectangle", ImageUtil::addRectangle,
-             "filled_rectangle", ImageUtil::addFilledRectangle,
-             "ellipse", ImageUtil::addEllipse);
+      Map.of(
+             "arc",              ImageUtil::addArc,
+             "circle",           ImageUtil::addCircle,
+             "filled_circle",    ImageUtil::addFilledCircle,
+             "ellipse",          ImageUtil::addEllipse,
+             "filled_ellipse",   ImageUtil::addFilledEllipse,
+             "line",             ImageUtil::addLine, 
+             "downleft_line",    ImageUtil::addDownLeftLine,
+             "rectangle",        ImageUtil::addRectangle,
+             "filled_rectangle", ImageUtil::addFilledRectangle
+      );
 
   /** Drive a parallel search for better images, by letting
     * HillClimber's "race" each other to get better results.
