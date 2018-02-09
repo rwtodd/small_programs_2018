@@ -38,9 +38,8 @@ I install these two programs as modules `toys.y2018.hillclimb` and
 
 ## Java Version
 
-Early in development, for comparison, I made a multithreaded java version, included here in the
-repository.  It only does filled ellipses, while the python version can do
- a variety of shapes.  It also does not have performance enhancements I have since made to the
-python programs, which means any perfomance comparison is no longer apples-to-apples.  The python
-version is much faster these days.
+I made a multithreaded java version, included here in the
+repository.  It is a bit faster than the python version, but was
+a lot more verbose and cumbersome to write.  That's a pretty 
+typical trade-off between the two languages.
 

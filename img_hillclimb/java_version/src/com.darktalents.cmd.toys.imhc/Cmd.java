@@ -5,6 +5,8 @@ import javax.imageio.ImageIO;
 import java.awt.Graphics2D;
 import java.awt.Color;
 import java.util.Set;
+import java.util.Map;
+import java.util.List;
 import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Random;
@@ -14,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.io.File;
 import java.io.InputStream;
 import java.io.FileInputStream;
@@ -61,16 +64,66 @@ final class ImageUtil {
      return new BufferedImage(tgt.getWidth(), tgt.getHeight(), BufferedImage.TYPE_INT_RGB);
   }
 
-  /** Add an ellipse to a copy of  SRC, returning the result. */
-  final static BufferedImage addRandomEllipse(final Random rnd, final BufferedImage src, final Color[] colors, final int maxSize) {
+  /** Add a down-from-the-left line to a copy of SRC, returning the result */
+  final static BufferedImage addDownLeftLine(final BufferedImage src, final Color color) {
       BufferedImage result = sameSizeEmpty(src);
       Graphics2D g = result.createGraphics();
       g.drawImage(src, 0, 0, null);
-      g.setPaint(colors[ rnd.nextInt(colors.length) ] );
-      g.fillOval( rnd.nextInt(src.getWidth()), rnd.nextInt(src.getHeight()),
-                 rnd.nextInt(maxSize)+1, rnd.nextInt(maxSize)+1); 
+      g.setPaint(color);
+      g.drawLine(0, 0, src.getWidth()-1, src.getHeight()-1);
       g.dispose();
       return result;
+  }
+
+  /** Add a filled rectangle to a copy of  SRC, returning the result. */
+  final static BufferedImage addFilledRectangle(final BufferedImage src, final Color color) {
+      BufferedImage result = sameSizeEmpty(src);
+      Graphics2D g = result.createGraphics();
+      g.setPaint(color);
+      g.fillRect( 0, 0, src.getWidth(), src.getHeight() );
+      g.dispose();
+      return result;
+  }
+
+  /** Add a rectangle to a copy of  SRC, returning the result. */
+  final static BufferedImage addRectangle(final BufferedImage src, final Color color) {
+      BufferedImage result = sameSizeEmpty(src);
+      Graphics2D g = result.createGraphics();
+      g.drawImage(src, 0, 0, null);
+      g.setPaint(color);
+      g.drawRect( 0, 0, src.getWidth(), src.getHeight() );
+      g.dispose();
+      return result;
+  }
+
+
+  /** Add an ellipse to a copy of  SRC, returning the result. */
+  final static BufferedImage addEllipse(final BufferedImage src, final Color color) {
+      BufferedImage result = sameSizeEmpty(src);
+      Graphics2D g = result.createGraphics();
+      g.drawImage(src, 0, 0, null);
+      g.setPaint(color);
+      g.drawOval( 0, 0, src.getWidth(), src.getHeight() );
+      g.dispose();
+      return result;
+  }
+
+  /** Add a filled ellipse to a copy of  SRC, returning the result. */
+  final static BufferedImage addFilledEllipse(final BufferedImage src, final Color color) {
+      BufferedImage result = sameSizeEmpty(src);
+      Graphics2D g = result.createGraphics();
+      g.drawImage(src, 0, 0, null);
+      g.setPaint(color);
+      g.fillOval( 0, 0, src.getWidth(), src.getHeight() );
+      g.dispose();
+      return result;
+  }
+
+  /** copy SRC into TGT.. assumes they are the same size */
+  final static void copyInto(final BufferedImage tgt, final BufferedImage src) {
+      Graphics2D g = tgt.createGraphics();
+      g.drawImage(src, 0, 0, null);
+      g.dispose();
   }
 
   /** Pull all the unique colors out of an image, returning them in an array. */
@@ -114,11 +167,17 @@ final class HillClimber implements Callable<Results> {
   final BufferedImage tgt;  // the target image
   final Color[] tgtColors;  // the list of possible colors
   final Results soFar;      // our best outcome so far
+  final BiFunction<BufferedImage,Color,BufferedImage> drawFunc; // our drawing method
 
-  HillClimber(final int steps, final BufferedImage tgt, final Color[] tgtColors, Results soFar) {
+  HillClimber(final int steps, 
+              final BufferedImage tgt, 
+              final Color[] tgtColors, 
+              final BiFunction<BufferedImage,Color,BufferedImage> drawFunc,
+              final Results soFar) {
      this.steps = steps;
      this.tgt = tgt;
      this.tgtColors = tgtColors;
+     this.drawFunc = drawFunc;
 
      if(soFar == null) {
         BufferedImage empty = ImageUtil.sameSizeEmpty(tgt);
@@ -133,16 +192,33 @@ final class HillClimber implements Callable<Results> {
       final Random rnd = ThreadLocalRandom.current();
       double best_err = soFar.rmse;
       BufferedImage best_img = soFar.img;
-      final int maxSize = Math.min(tgt.getWidth(), tgt.getHeight()) / 10;
+      final int tgtWd = tgt.getWidth();
+      final int tgtHt = tgt.getHeight();
+      final int maxX = tgtWd / 10;
+      final int maxY = tgtHt / 10;
 
       for(int i = 0; i < this.steps; i++) {
-          BufferedImage scratch = ImageUtil.addRandomEllipse(rnd, best_img, tgtColors, maxSize);
-          double cur_err = ImageUtil.rmsError(scratch, tgt);
-          if(cur_err < best_err) {
-             best_err = cur_err;
-             best_img = scratch;
+          // determine a random bounding box
+          final int ulx = rnd.nextInt(tgtWd-1);
+          final int uly = rnd.nextInt(tgtHt-1);
+          final int wd = Math.min(tgtWd - ulx, rnd.nextInt(maxX)+1);
+          final int ht = Math.min(tgtHt - uly, rnd.nextInt(maxY)+1);
+          // determine a random color
+          final Color c = tgtColors[ rnd.nextInt(tgtColors.length) ];
+          // get a sub-image of tgt, and a drawn-on version
+          BufferedImage subtgt = tgt.getSubimage(ulx,uly,wd,ht);
+          BufferedImage subbst = best_img.getSubimage(ulx,uly,wd,ht);
+          BufferedImage scratch = drawFunc.apply(subbst, c);
+          // determine if the error is better or worse...
+          final double cur_err = ImageUtil.rmsError(scratch, subtgt);
+          final double bst_err = ImageUtil.rmsError(subbst, subtgt);
+          if(cur_err < bst_err) {
+               // copy the scratch into the best_image
+               ImageUtil.copyInto(subbst, scratch);
           }
       }
+
+      best_err = ImageUtil.rmsError(best_img, tgt);
       return new Results(best_img, best_err);
   }
 
@@ -150,12 +226,20 @@ final class HillClimber implements Callable<Results> {
 
 public final class Cmd {
 
+  static final Map<String,BiFunction<BufferedImage,Color,BufferedImage>> drawers = 
+      Map.of("filled_ellipse", ImageUtil::addFilledEllipse,
+             "downleft_line", ImageUtil::addDownLeftLine,
+             "rectangle", ImageUtil::addRectangle,
+             "filled_rectangle", ImageUtil::addFilledRectangle,
+             "ellipse", ImageUtil::addEllipse);
+
   /** Drive a parallel search for better images, by letting
     * HillClimber's "race" each other to get better results.
     * Periodically save an output.
     */
   static final void doPic(final String tgtFn, 
                           final String startFn, 
+                          final BiFunction<BufferedImage,Color,BufferedImage> drawer,
                           final int numThreads, 
                           final int numIterations, 
                           final int numSteps) throws Exception {
@@ -172,7 +256,7 @@ public final class Cmd {
       for(int i = 0; i < numIterations; i++) {
         futures.clear();
         for(int j = 0; j < numThreads; j++) {
-            futures.add( executor.submit(new HillClimber(numSteps, tgt, tgtColors, best))  );
+            futures.add( executor.submit(new HillClimber(numSteps, tgt, tgtColors, drawer, best))  );
         }
         
         for(int j = 0; j < numThreads; j++) {
@@ -197,25 +281,46 @@ public final class Cmd {
   }
 
  
+  public static void printDrawers() {
+     System.err.println("Available -d shape options are:"); 
+     drawers.keySet().stream().forEachOrdered( k -> System.err.printf("\t%s\n",k) );
+  }
+
   public static void main(String[] args) {
      OptionParser op = new OptionParser();
+   
+     OptionSpec<Void> helpOption = op.acceptsAll(List.of("h","?","help"), "print help");
      OptionSpec<String> startOption = op.accepts("s", "start from this image").withRequiredArg().ofType(String.class);
-    OptionSpec<Integer> njOption = op.accepts("j", "the number of concurrent jobs").withRequiredArg().ofType(Integer.class).defaultsTo(4);
-    OptionSpec<Integer> niOption = op.accepts("i", "the number of iterations to run").withRequiredArg().ofType(Integer.class).defaultsTo(10);
-    OptionSpec<Integer> neOption = op.accepts("e", "the number of ellipses per iteration").withRequiredArg().ofType(Integer.class).defaultsTo(1000);
-    OptionSpec<String> files = op.nonOptions("the image").ofType(String.class);
+     OptionSpec<Integer> njOption = op.accepts("j", "the number of concurrent jobs").withRequiredArg().ofType(Integer.class).defaultsTo(4);
+     OptionSpec<Integer> niOption = op.accepts("i", "the number of iterations to run").withRequiredArg().ofType(Integer.class).defaultsTo(100);
+     OptionSpec<Integer> neOption = op.accepts("e", "the number of tries each iteration").withRequiredArg().ofType(Integer.class).defaultsTo(3000);
+     OptionSpec<String> ndOption = op.accepts("d", "the shape to draw").withRequiredArg().ofType(String.class).defaultsTo("filled_ellipse");
+     OptionSpec<String> files = op.nonOptions("the source image").ofType(String.class);
     try {
       OptionSet os = op.parse(args);
+
+      if(os.has(helpOption)) {
+			op.printHelpOn(System.err); 
+            printDrawers(); 
+            System.exit(1);
+      }
+
       for(String fn : files.values(os)) {
-          doPic(fn, startOption.value(os), njOption.value(os), niOption.value(os), neOption.value(os));
+          doPic(fn, 
+                startOption.value(os), 
+                drawers.get(ndOption.value(os)), 
+                njOption.value(os), 
+                niOption.value(os), 
+                neOption.value(os));
           break;
       }
+
     } catch(java.io.IOException e) {
 			System.err.println(e);
 			System.exit(1);
     } catch(Exception ex) {
 			System.err.println(ex);
-			try { op.printHelpOn(System.err); } catch(Exception ex2) { /* already in an exception... */ }
+			try { op.printHelpOn(System.err); printDrawers(); } catch(Exception ex2) { /* already in an exception... */ }
     }
   }
 }
