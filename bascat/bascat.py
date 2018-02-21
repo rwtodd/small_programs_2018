@@ -133,10 +133,10 @@ def _get_reader(f):
 def _get_token(rdr):
     """Read and create the next _Token from the file"""
     nxt = rdr.read_u8()
-    if nxt in range(0x20,0x7F):  # >= 0x20 and nxt <= 0x7E:
+    if nxt in range(0x20,0x7F):  
         return _Token.from_string(nxt,chr(nxt))
-    elif nxt in range(0xFD, 0x100): # >= 0xFD and nxt <= 0xFF:
-        return _Token.from_opcode( (nxt << 8) | rdr.read_u8(), rdr)
+    elif nxt in range(0xFD, 0x100): 
+        return _Token.from_opcode( (nxt << 8) | rdr.read_u8() , rdr)
     else:
         return _Token.from_opcode(nxt,rdr) 
 
