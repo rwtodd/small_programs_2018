@@ -171,13 +171,8 @@ def _format(line):
     """Convert a list of tokens into a string"""
     idx, end, filtered = 0, len(line), []
     def looking_at(*args):
-        if (end - idx) < len(args):
-            return False
-        x = idx
-        for arg in args:
-            if line[x].num != arg: return False 
-            x = x + 1
-        return True
+        alen = len(args)
+        return ((end - idx) >= alen and all(args[i] == line[idx+i].num for i in range(alen)))
     while idx < end:
         # 3A A1     --> A1   ":ELSE"  --> "ELSE"
         # 3A 8F D9  --> D9   ":REM'"  --> "'" 
