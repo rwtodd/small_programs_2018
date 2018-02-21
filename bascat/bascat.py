@@ -26,11 +26,11 @@ class _Token:
         return cls(num, desc)
 
     @classmethod
-    def from_opcode(cls, tok):
+    def from_opcode(cls, tok, rdr):
         desc = _opcodes.get(tok)
-        if desc is None:
-            desc = f'<UNK 0x{tok:X}>'
-        return cls(tok, desc)
+        if callable(desc):
+            return desc(rdr)
+        return cls(tok, desc or f'<UNK 0x{tok:X}>')
        
 
 class _Reader:
@@ -133,26 +133,12 @@ def _get_reader(f):
 def _get_token(rdr):
     """Read and create the next _Token from the file"""
     nxt = rdr.read_u8()
-    if nxt >= 0x20 and nxt <= 0x7E:
+    if nxt in range(0x20,0x7F):  # >= 0x20 and nxt <= 0x7E:
         return _Token.from_string(nxt,chr(nxt))
-    elif nxt >= 0xFD and nxt <= 0xFF:
-        return _Token.from_opcode( (nxt << 8) | rdr.read_u8() )
-    elif nxt == 0x0E:
-        return _Token.from_number(rdr.read_u16(), 10)
-    elif nxt == 0x0B:
-        return _Token.from_number(rdr.read_16(), 8)
-    elif nxt == 0x0C:
-        return _Token.from_number(rdr.read_16(), 16)
-    elif nxt == 0x1C:
-        return _Token.from_number(rdr.read_16(), 10)
-    elif nxt == 0x0F:
-        return _Token.from_number(rdr.read_u8(), 10)
-    elif nxt == 0x1D:
-        return _Token.from_float(rdr.read_f32())
-    elif nxt == 0x1F:
-        return _Token.from_float(rdr.read_f64())
+    elif nxt in range(0xFD, 0x100): # >= 0xFD and nxt <= 0xFF:
+        return _Token.from_opcode( (nxt << 8) | rdr.read_u8(), rdr)
     else:
-        return _Token.from_opcode(nxt) 
+        return _Token.from_opcode(nxt,rdr) 
 
 def _tokens(rdr):
     """a generator that reads tokens forever""" 
@@ -202,6 +188,10 @@ def gwbas_lines(fn):
 
 _opcodes = {
     0x00: "EOL",
+    0x0B: (lambda rdr: _Token.from_number(rdr.read_16(), 8)),
+    0x0C: (lambda rdr: _Token.from_number(rdr.read_16(), 16)),
+    0x0E: (lambda rdr: _Token.from_number(rdr.read_u16(), 10)),
+    0x0F: (lambda rdr: _Token.from_number(rdr.read_u8(), 10)),
     0x11: "0",
     0x12: "1",
     0x13: "2",
@@ -213,6 +203,9 @@ _opcodes = {
     0x19: "8",
     0x1A: "9",
     0x1B: "10",
+    0x1C: (lambda rdr: _Token.from_number(rdr.read_16(), 10)),
+    0x1D: (lambda rdr: _Token.from_float(rdr.read_f32())),
+    0x1F: (lambda rdr: _Token.from_float(rdr.read_f64())),
     0x81: "END",
     0x82: "FOR",
     0x83: "NEXT",
