@@ -172,19 +172,17 @@ def _format(line):
         idx = idx + 1
     return ''.join(filtered) 
 
-def file_lines(f):
-    """Generate the GW-BASIC lines from open file f"""
-    rdr = _get_reader(f)
-    while True:
-        line = _get_line(rdr)
-        if len(line) == 0:
-            break
-        yield _format(line)
-    
-def gwbas_lines(fn):
-    """Create a generator for the lines of a GW-BASIC file."""
-    with open(fn,'rb') as f:
-        yield from file_lines(f)
+def gwbas_lines(f):
+    """Generate the GW-BASIC lines from file|filename f"""
+    if isinstance(f, str):
+        f = open(f, 'rb')
+    with f:
+        rdr = _get_reader(f)
+        while True:
+            line = _get_line(rdr)
+            if len(line) == 0:
+                break
+            yield _format(line)
 
 _opcodes = {
     0x00: "EOL",
