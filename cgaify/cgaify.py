@@ -89,16 +89,19 @@ def full_palette(pal):
     newp[:plen] = pal[:]
     return newp
 
-def cgaify(src_file, palname):
-    """Convert the image in SRC_FILE to use palette named PALNAME, 
-       saving the converted file."""
-    img = Image.open(src_file)
+def cgaify(src, palname):
+    """Convert the image in SRC (which can be the image or a filename) to 
+       use palette named PALNAME, returning the converted image."""
+    if isinstance(src, str):
+        img = Image.open(src)
+    else:
+        img = src
+    if img.mode not in ('RGB', 'L'):
+        img = img.convert('RGB') 
     fullp = full_palette(PALETTES[palname])
     palimg = Image.new('P',(1,1))
     palimg.putpalette(fullp)
-    img = img.quantize(palette=palimg)
-    img.save(f'{src_file}_{palname}.png')
-    img.close()
+    return img.quantize(palette=palimg)
 
 if __name__ == "__main__":
     import argparse
@@ -106,4 +109,7 @@ if __name__ == "__main__":
     parser.add_argument("src_file", help="the original file")
     parser.add_argument("-p", dest='palette', default='cga0', choices=list(PALETTES.keys()), help="the palette to use")
     args = parser.parse_args()
-    cgaify(args.src_file, args.palette)
+    img = cgaify(args.src_file, args.palette)
+    img.save(f'{args.src_file}_{args.palette}.png')
+    img.close()
+
