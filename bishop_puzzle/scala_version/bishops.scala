@@ -16,7 +16,7 @@ class Board(val parent: Board,
 
    private lazy val attacks = {
        val ap = Board.emptyPlaces
-       for (idx <- 0 until places.size) {
+       for (idx <- places.indices) {
           val p = places(idx)
           if (p > 0)  
              Board.bishopForEach(idx) { (idx2) =>
@@ -26,27 +26,12 @@ class Board(val parent: Board,
        ap
    }
 
-   val hash = {
-      var h:BigInt = 0 
-      for( p <- places ) {
-          h = (h << 2) | p 
-      }
-      h
-   }
+   val hash = places.foldLeft(BigInt(0)) { (h,p) => (h << 2) | p }
 
-   private def clearPath(idx1: Int, idx2: Int): Boolean = {
-      val delta = Board.delta(idx1,idx2)
-      if (delta == 0) return false // path to self!
-      var i = idx1
-      while (i != idx2) {
-         i += delta
-         if (places(i) != 0) return false
-      }
-
-      // lastly, check that we are not attacked on the final square
-      val p = places(idx1)
-      (attacks(idx2) & (3-p)) == 0
-   }
+   private def clearPath(idx1: Int, idx2: Int): Boolean = 
+      idx1 != idx2  &&
+      (idx2 until idx1 by Board.delta(idx2,idx1)).forall(places(_) == 0) &&
+      (3-places(idx1) & attacks(idx2)) == 0
 
    def tryMove(attempt: Board.Move) : Option[Board] = {
       val (idx1,idx2) = attempt
@@ -60,16 +45,15 @@ class Board(val parent: Board,
 
    def nextMoves : ArrayBuffer[Board] = {
       val moves = ArrayBuffer[Board]()
-      for (idx <- 0 until places.size) {
-         if (places(idx) > 0)  
-            Board.bishopForEach(idx) { (idx2) =>
-                 tryMove(idx,idx2) foreach { nb =>
-                      if (!ss.seen(nb.hash)) {
-                         ss.add(nb.hash)
-                         moves += nb
-                      }
-                 }
-            }
+      for (idx <- places.indices if places(idx) > 0) {
+          Board.bishopForEach(idx) { (idx2) =>
+               tryMove(idx,idx2) foreach { nb =>
+                    if (!ss.seen(nb.hash)) {
+                       ss.add(nb.hash)
+                       moves += nb
+                    }
+               }
+          }
       }
       moves 
    }
@@ -98,18 +82,13 @@ class Board(val parent: Board,
 object Board {
    type Move = Tuple2[Int,Int]  // IDX to IDX
 
-   //def index(x:Int, y:Int)(implicit ss: SearchState): Int = 
-   //   (y * ss.cols) + x
-
    def emptyPlaces(implicit ss: SearchState) = Array.ofDim[Byte](ss.rows*ss.cols)
 
    def startingBoard(implicit ss: SearchState) = {
        val pl = emptyPlaces
        for ( idx <- 0 until pl.size by ss.cols ) {
            pl(idx) = 1
-       }
-       for ( idx <- (ss.cols-1) until pl.size by ss.cols ) {
-           pl(idx) = 2
+           pl(idx + ss.cols - 1) = 2
        }
        new Board(null, pl, null)
    }
@@ -118,24 +97,19 @@ object Board {
        val pl = emptyPlaces
        for ( idx <- 0 until pl.size by ss.cols ) {
            pl(idx) = 2
-       }
-       for ( idx <- (ss.cols-1) until pl.size by ss.cols ) {
-           pl(idx) = 1
+           pl(idx + ss.cols - 1) = 1
        }
        new Board(null, pl, null)
    }
 
    def delta(idx1: Int, idx2:Int) 
             (implicit ss: SearchState): Int = {
-      val delta1 = ss.cols+1
-      val delta2 = ss.cols-1
-      val diff = idx2 - idx1 
-      val sign = Math.signum(diff).toInt
-      if ((diff % delta1) == 0) {
-         sign * delta1
-      } else {
-         sign * delta2
-      }
+      val sign = if (idx2 > idx1) 1 else -1
+      val downright = ss.cols + 1
+      if ((idx2 - idx1) % downright == 0)
+          sign*downright
+      else
+          sign*(ss.cols-1) 
    }
 
    def bishopForEach(center: Int)(action: (Int)=>Unit)
