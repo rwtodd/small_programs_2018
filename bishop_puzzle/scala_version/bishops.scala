@@ -19,6 +19,7 @@ class Board(val parent: Board,
        for (idx <- places.indices) {
           val p = places(idx)
           if (p > 0)  
+             ap(idx) = (ap(idx) | p).toByte
              Board.bishopForEach(idx) { (idx2) =>
                  ap(idx2) = (ap(idx2) | p).toByte
              }
@@ -29,7 +30,6 @@ class Board(val parent: Board,
    val hash = places.foldLeft(BigInt(0)) { (h,p) => (h << 2) | p }
 
    private def clearPath(idx1: Int, idx2: Int): Boolean = 
-      idx1 != idx2  &&
       (idx2 until idx1 by Board.delta(idx2,idx1)).forall(places(_) == 0) &&
       (3-places(idx1) & attacks(idx2)) == 0
 
@@ -116,38 +116,25 @@ object Board {
                     (implicit ss: SearchState): Unit = {
       val cx = center %  ss.cols
       val cy = center / ss.cols
+      val lastrow = ss.rows - 1
+      val lastcol = ss.cols - 1
+      val xc = lastcol - cx
+      val yc = lastrow - cy
 
-      var x = Math.max(cx-cy,0)
-      var y = Math.max(cy-cx,0)
-      var len = Math.min( ss.cols - x, ss.rows - y )
-      var idx = x + (y*ss.cols)
-      val delta1 = ss.cols + 1
-      for (_ <- 1 to len) { 
-          action(idx)
-          idx += delta1
-      }
+      val idx1 = Math.max(cx-cy,0) + ss.cols * Math.max(cy-cx,0)
+      val idx2 = Math.min(cx+yc,lastcol) + ss.cols * Math.min(cy+xc,lastrow)
+      for (idx <- idx1 to idx2 by ss.cols+1 if idx != center) action(idx)
 
-      x = Math.max(cx-(ss.rows-1)+cy, 0)
-      y = Math.min(cy+cx,(ss.rows-1))
-      len = Math.min( ss.cols - x, y + 1 )
-      idx = x + (y*ss.cols)
-      val delta2 = ss.cols - 1
-      for (_ <- 1 to len) {
-         if (idx != center) action(idx)
-         idx -= delta2
-      }
+      val idx3 = Math.min(cx+cy, lastcol) + ss.cols * Math.max(cy-xc,0)
+      val idx4 = Math.max(cx-yc, 0) + ss.cols * Math.min(cy+cx,lastrow)
+      for (idx <- idx3 to idx4 by ss.cols-1 if idx != center) action(idx)
    }
 
-   def displayChain(chain : Board) : Unit = {
-      var b = chain
-      while(b != null) {
-        println(b)
-        println()
-        b = b.parent
+   def displayChain(chain : Board) : Unit = 
+      Stream.iterate(chain)(_.parent).takeWhile(_ != null).foreach { b =>
+        println(b) ; println()
       }
-   }
 }
-
 
 object Bishops {
 
