@@ -3,7 +3,7 @@ package org.rwtodd.app.bishops
 import scala.collection.mutable.Set
 import scala.collection.mutable.ArrayBuffer
 
-class SearchState(val rows : Int, val cols : Int) {
+class GameContext(val rows : Int, val cols : Int) {
    private val seenCache = Set[BigInt]()
    def seen(hash: BigInt) = seenCache contains hash
    def add(hash: BigInt) = seenCache add hash
@@ -12,7 +12,7 @@ class SearchState(val rows : Int, val cols : Int) {
 
 class Board(val parent: Board, 
             places: Array[Byte],
-            val move: Board.Move)(implicit ss: SearchState) {
+            val move: Board.Move)(implicit ctx: GameContext) {
 
    private lazy val attacks = {
        val ap = Board.emptyPlaces
@@ -48,8 +48,8 @@ class Board(val parent: Board,
       for (idx <- places.indices if places(idx) > 0) {
           Board.bishopForEach(idx) { (idx2) =>
                tryMove(idx,idx2) foreach { nb =>
-                    if (!ss.seen(nb.hash)) {
-                       ss.add(nb.hash)
+                    if (!ctx.seen(nb.hash)) {
+                       ctx.add(nb.hash)
                        moves += nb
                     }
                }
@@ -66,13 +66,13 @@ class Board(val parent: Board,
                                     case 2 => 'B' 
                                     case 3 => 'X'
                                   } 
-                    }.grouped(ss.cols).map(_.mkString).mkString("\n")
+                    }.grouped(ctx.cols).map(_.mkString).mkString("\n")
       val desc = if (move == null) "" 
                  else {
-                     val x1 = move._1 % ss.cols
-                     val y1 = move._1 / ss.cols + 1
-                     val x2 = move._2 % ss.cols
-                     val y2 = move._2 / ss.cols + 1
+                     val x1 = move._1 % ctx.cols
+                     val y1 = move._1 / ctx.cols + 1
+                     val x2 = move._2 % ctx.cols
+                     val y2 = move._2 / ctx.cols + 1
                      s"\n\n${letters(x1)}${y1} -> ${letters(x2)}${y2}"
                  }
       boardPic + desc
@@ -82,52 +82,52 @@ class Board(val parent: Board,
 object Board {
    type Move = Tuple2[Int,Int]  // IDX to IDX
 
-   def emptyPlaces(implicit ss: SearchState) = Array.ofDim[Byte](ss.rows*ss.cols)
+   def emptyPlaces(implicit ctx: GameContext) = Array.ofDim[Byte](ctx.rows*ctx.cols)
 
-   def startingBoard(implicit ss: SearchState) = {
+   def startingBoard(implicit ctx: GameContext) = {
        val pl = emptyPlaces
-       for ( idx <- 0 until pl.size by ss.cols ) {
+       for ( idx <- 0 until pl.size by ctx.cols ) {
            pl(idx) = 1
-           pl(idx + ss.cols - 1) = 2
+           pl(idx + ctx.cols - 1) = 2
        }
        new Board(null, pl, null)
    }
 
-   def winningBoard(implicit ss: SearchState) = {
+   def winningBoard(implicit ctx: GameContext) = {
        val pl = emptyPlaces
-       for ( idx <- 0 until pl.size by ss.cols ) {
+       for ( idx <- 0 until pl.size by ctx.cols ) {
            pl(idx) = 2
-           pl(idx + ss.cols - 1) = 1
+           pl(idx + ctx.cols - 1) = 1
        }
        new Board(null, pl, null)
    }
 
    def delta(idx1: Int, idx2:Int) 
-            (implicit ss: SearchState): Int = {
+            (implicit ctx: GameContext): Int = {
       val sign = if (idx2 > idx1) 1 else -1
-      val downright = ss.cols + 1
+      val downright = ctx.cols + 1
       if ((idx2 - idx1) % downright == 0)
           sign*downright
       else
-          sign*(ss.cols-1) 
+          sign*(ctx.cols-1) 
    }
 
    def bishopForEach(center: Int)(action: (Int)=>Unit)
-                    (implicit ss: SearchState): Unit = {
-      val cx = center %  ss.cols
-      val cy = center / ss.cols
-      val lastrow = ss.rows - 1
-      val lastcol = ss.cols - 1
+                    (implicit ctx: GameContext): Unit = {
+      val cx = center %  ctx.cols
+      val cy = center / ctx.cols
+      val lastrow = ctx.rows - 1
+      val lastcol = ctx.cols - 1
       val xc = lastcol - cx
       val yc = lastrow - cy
 
-      val idx1 = Math.max(cx-cy,0) + ss.cols * Math.max(cy-cx,0)
-      val idx2 = Math.min(cx+yc,lastcol) + ss.cols * Math.min(cy+xc,lastrow)
-      for (idx <- idx1 to idx2 by ss.cols+1 if idx != center) action(idx)
+      val idx1 = Math.max(cx-cy,0) + ctx.cols * Math.max(cy-cx,0)
+      val idx2 = Math.min(cx+yc,lastcol) + ctx.cols * Math.min(cy+xc,lastrow)
+      for (idx <- idx1 to idx2 by ctx.cols+1 if idx != center) action(idx)
 
-      val idx3 = Math.min(cx+cy, lastcol) + ss.cols * Math.max(cy-xc,0)
-      val idx4 = Math.max(cx-yc, 0) + ss.cols * Math.min(cy+cx,lastrow)
-      for (idx <- idx3 to idx4 by ss.cols-1 if idx != center) action(idx)
+      val idx3 = Math.min(cx+cy, lastcol) + ctx.cols * Math.max(cy-xc,0)
+      val idx4 = Math.max(cx-yc, 0) + ctx.cols * Math.min(cy+cx,lastrow)
+      for (idx <- idx3 to idx4 by ctx.cols-1 if idx != center) action(idx)
    }
 
    def displayChain(chain : Board) : Unit = 
@@ -162,11 +162,11 @@ object Bishops {
     println(s"Solving $rows by $cols...")
     println()
 
-    implicit val ss = new SearchState(rows, cols)
+    implicit val ctx = new GameContext(rows, cols)
 
     val winningHash = Board.winningBoard.hash
     var backlog = ArrayBuffer(Board.startingBoard)
-    ss.add(backlog(0).hash)
+    ctx.add(backlog(0).hash)
     var winner : Option[Board] = None
     var iteration = 0
     while ((backlog.size > 0) && (winner == None)) {
@@ -177,6 +177,6 @@ object Bishops {
     }
 
     winner.foreach(Board.displayChain)
-    println(ss)
+    println(ctx)
   }
 }
