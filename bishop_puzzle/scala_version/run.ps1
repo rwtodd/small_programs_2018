@@ -1,0 +1,1 @@
+java -cp  "C:\Users\richa\.ivy2\local\org.rwtodd\argparse_2.12\1.0\jars\argparse_2.12.jar;C:\Users\richa\.ivy2\cache\org.scala-lang\scala-library\jars\scala-library-2.12.6.jar;target\scala-2.12\bishops_2.12-1.0.jar" org.rwtodd.app.bishops.Bishops $args

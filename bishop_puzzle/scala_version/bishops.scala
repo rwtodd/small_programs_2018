@@ -4,15 +4,15 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.ArrayBuffer
 
 class SearchState(val rows : Int, val cols : Int) {
-   private val seenCache = Set[Long]()
-   def seen(hash: Long) = seenCache contains hash
-   def add(hash: Long) = seenCache add hash
+   private val seenCache = Set[BigInt]()
+   def seen(hash: BigInt) = seenCache contains hash
+   def add(hash: BigInt) = seenCache add hash
    override def toString() = s"$rows by $cols Search (${seenCache.size} boards considered)"
 }
 
 
 class Board(val parent: Board, 
-            places: Array[Array[Char]],
+            places: Array[Array[Byte]],
             val move: Board.Move)(implicit ss: SearchState) {
 
    private lazy val attacks = {
@@ -22,14 +22,14 @@ class Board(val parent: Board,
           val p = places(cy)(cx)
           if (p > 0)  
              Board.bishopForEach(cx,cy) { (x,y) =>
-                 ap(y)(x) = (ap(y)(x) | p).toChar
+                 ap(y)(x) = (ap(y)(x) | p).toByte
              }
        }
        ap
    }
 
    val hash = {
-      var h:Long = 0 
+      var h:BigInt = 0 
       for( row <- places ; p  <- row ) {
           h = (h << 2) | p 
       }
@@ -100,7 +100,7 @@ class Board(val parent: Board,
 object Board {
    type Move = Tuple4[Int,Int,Int,Int]
 
-   def emptyPlaces(implicit ss: SearchState) = Array.ofDim[Char](ss.rows, ss.cols)
+   def emptyPlaces(implicit ss: SearchState) = Array.ofDim[Byte](ss.rows, ss.cols)
 
    def startingBoard(implicit ss: SearchState) = {
        val pl = emptyPlaces
@@ -179,6 +179,7 @@ object Bishops {
 
     val winningHash = Board.winningBoard.hash
     var backlog = ArrayBuffer(Board.startingBoard)
+    ss.add(backlog(0).hash)
     var winner : Option[Board] = None
     var iteration = 0
     while ((backlog.size > 0) && (winner == None)) {
