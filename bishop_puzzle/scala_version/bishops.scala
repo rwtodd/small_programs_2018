@@ -10,19 +10,17 @@ class SearchState(val rows : Int, val cols : Int) {
    override def toString() = s"$rows by $cols Search (${seenCache.size} boards considered)"
 }
 
-
 class Board(val parent: Board, 
-            places: Array[Array[Byte]],
+            places: Array[Byte],
             val move: Board.Move)(implicit ss: SearchState) {
 
    private lazy val attacks = {
        val ap = Board.emptyPlaces
-       for (cy <- 0 until ss.rows;
-            cx <- 0 until ss.cols) { 
-          val p = places(cy)(cx)
+       for (idx <- 0 until places.size) {
+          val p = places(idx)
           if (p > 0)  
-             Board.bishopForEach(cx,cy) { (x,y) =>
-                 ap(y)(x) = (ap(y)(x) | p).toByte
+             Board.bishopForEach(idx) { (idx2) =>
+                 ap(idx2) = (ap(idx2) | p).toByte
              }
        }
        ap
@@ -30,46 +28,42 @@ class Board(val parent: Board,
 
    val hash = {
       var h:BigInt = 0 
-      for( row <- places ; p  <- row ) {
+      for( p <- places ) {
           h = (h << 2) | p 
       }
       h
    }
 
-   private def clearPath(x1: Int, y1: Int, x2: Int, y2: Int): Boolean = {
-      val xdir = Math.signum(x2-x1).toInt
-      if (xdir == 0) return false // path to self!
-      val ydir = Math.signum(y2-y1).toInt
-
-      var x = x1
-      var y = y1
-      while (x != x2) {
-         x += xdir ; y += ydir
-         if (places(y)(x) != 0) return false
+   private def clearPath(idx1: Int, idx2: Int): Boolean = {
+      val delta = Board.delta(idx1,idx2)
+      if (delta == 0) return false // path to self!
+      var i = idx1
+      while (i != idx2) {
+         i += delta
+         if (places(i) != 0) return false
       }
 
       // lastly, check that we are not attacked on the final square
-      val p = places(y1)(x1)
-      (attacks(y2)(x2) & (3-p)) == 0
+      val p = places(idx1)
+      (attacks(idx2) & (3-p)) == 0
    }
 
    def tryMove(attempt: Board.Move) : Option[Board] = {
-      val (x1,y1,x2,y2) = attempt
-      if (clearPath(x1,y1,x2,y2)) {
-         val np = places.map(_.clone)
-         np(y2)(x2) = places(y1)(x1)
-         np(y1)(x1) = 0
+      val (idx1,idx2) = attempt
+      if (clearPath(idx1,idx2)) {
+         val np = places.clone
+         np(idx2) = places(idx1)
+         np(idx1) = 0
          Some(new Board(this, np, attempt))
       } else None
    }
 
    def nextMoves : ArrayBuffer[Board] = {
       val moves = ArrayBuffer[Board]()
-      for (cy <- 0 until ss.rows;
-           cx <- 0 until ss.cols) { 
-         if (places(cy)(cx) > 0)  
-            Board.bishopForEach(cx,cy) { (x,y) =>
-                 tryMove(cx,cy,x,y) foreach { nb =>
+      for (idx <- 0 until places.size) {
+         if (places(idx) > 0)  
+            Board.bishopForEach(idx) { (idx2) =>
+                 tryMove(idx,idx2) foreach { nb =>
                       if (!ss.seen(nb.hash)) {
                          ss.add(nb.hash)
                          moves += nb
@@ -82,59 +76,91 @@ class Board(val parent: Board,
 
    override def toString() = {
       val letters = "ABCDEFGHIJKLMNO"
-      val boardPic = places.map { row => 
-                          row.map { _ match {
+      val boardPic = places.map { _ match {
                                     case 0 => '-'
                                     case 1 => 'W'
                                     case 2 => 'B' 
                                     case 3 => 'X'
                                   } 
-                          }.mkString("") 
-                     }.mkString("\n")
+                    }.grouped(ss.cols).map(_.mkString).mkString("\n")
       val desc = if (move == null) "" 
-                 else s"\n\n${letters(move._1)}${move._2+1} -> ${letters(move._3)}${move._4+1}"
+                 else {
+                     val x1 = move._1 % ss.cols
+                     val y1 = move._1 / ss.cols + 1
+                     val x2 = move._2 % ss.cols
+                     val y2 = move._2 / ss.cols + 1
+                     s"\n\n${letters(x1)}${y1} -> ${letters(x2)}${y2}"
+                 }
       boardPic + desc
    }
 }
              
 object Board {
-   type Move = Tuple4[Int,Int,Int,Int]
+   type Move = Tuple2[Int,Int]  // IDX to IDX
 
-   def emptyPlaces(implicit ss: SearchState) = Array.ofDim[Byte](ss.rows, ss.cols)
+   //def index(x:Int, y:Int)(implicit ss: SearchState): Int = 
+   //   (y * ss.cols) + x
+
+   def emptyPlaces(implicit ss: SearchState) = Array.ofDim[Byte](ss.rows*ss.cols)
 
    def startingBoard(implicit ss: SearchState) = {
        val pl = emptyPlaces
-       for( row <- pl ) {
-           row(0) = 1
-           row(row.length - 1) = 2
+       for ( idx <- 0 until pl.size by ss.cols ) {
+           pl(idx) = 1
+       }
+       for ( idx <- (ss.cols-1) until pl.size by ss.cols ) {
+           pl(idx) = 2
        }
        new Board(null, pl, null)
    }
 
    def winningBoard(implicit ss: SearchState) = {
        val pl = emptyPlaces
-       for( row <- pl ) {
-           row(0) = 2
-           row(row.length - 1) = 1
+       for ( idx <- 0 until pl.size by ss.cols ) {
+           pl(idx) = 2
+       }
+       for ( idx <- (ss.cols-1) until pl.size by ss.cols ) {
+           pl(idx) = 1
        }
        new Board(null, pl, null)
    }
 
-   def bishopForEach(cx: Int, cy: Int)(action: (Int,Int)=>Unit)
+   def delta(idx1: Int, idx2:Int) 
+            (implicit ss: SearchState): Int = {
+      val delta1 = ss.cols+1
+      val delta2 = ss.cols-1
+      val diff = idx2 - idx1 
+      val sign = Math.signum(diff).toInt
+      if ((diff % delta1) == 0) {
+         sign * delta1
+      } else {
+         sign * delta2
+      }
+   }
+
+   def bishopForEach(center: Int)(action: (Int)=>Unit)
                     (implicit ss: SearchState): Unit = {
+      val cx = center %  ss.cols
+      val cy = center / ss.cols
+
       var x = Math.max(cx-cy,0)
       var y = Math.max(cy-cx,0)
       var len = Math.min( ss.cols - x, ss.rows - y )
-      for (_ <- 1 to len) {
-          action(x,y) 
-          x += 1 ; y += 1
+      var idx = x + (y*ss.cols)
+      val delta1 = ss.cols + 1
+      for (_ <- 1 to len) { 
+          action(idx)
+          idx += delta1
       }
+
       x = Math.max(cx-(ss.rows-1)+cy, 0)
       y = Math.min(cy+cx,(ss.rows-1))
       len = Math.min( ss.cols - x, y + 1 )
-      for (_ <- 1 to len) { 
-         if (x != cx) action(x,y)
-         x += 1 ; y -= 1
+      idx = x + (y*ss.cols)
+      val delta2 = ss.cols - 1
+      for (_ <- 1 to len) {
+         if (idx != center) action(idx)
+         idx -= delta2
       }
    }
 
