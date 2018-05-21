@@ -5,8 +5,11 @@ directory should have its own readme.  Enjoy!
 
  - __asciipic__: Convert images to ASCII on the terminal
  - __bascat__: Convert tokenized `GWBASIC`/`BASICA` files to plain text
+ - __bishop puzzle__: Solve the 7th Guest bishops puzzle
  - __cgaify__: Dither an image down to vintage DOS-era palettes
- - __img\_hillclimb__: Generate an approximation of an image via random shapes
- - __read_win7_recycle_bin__: a script to decode the hashed filenames in `C:\$Recycle.Bin\`
+ - __img hillclimb__: Generate an approximation of an image via random shapes
+ - __random sentence__: Scala version of Norvig's random sentence generator
+ - __read win7 recycle bin__: a script to decode the hashed filenames in `C:\$Recycle.Bin\`
+ - __sdl lua play__: just playing with C+Lua+SDL (mandlebrot)
 
  

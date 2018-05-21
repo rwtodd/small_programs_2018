@@ -1,20 +1,16 @@
 package org.rwtodd.app.sentences
-
 import scala.util.Random
 
 class Grammar(pairs: (Symbol,String)*) {
-   val g = Map(pairs.map { case (k,v) => 
-                  (k, v.split('|')
-                       .map(_.trim.split(' ').map(Symbol(_)))
-                  ) 
-               }:_*
-              )
+   val g = Map(pairs.map { 
+                  case (k,v) => (k.name, 
+                                 v.split('|').map(_.trim.split(' '))) 
+               }:_*)
 
-   // Replace symbol with a random entry in g (recursively); 
-   // join into a string.
-   def generate(sym: Symbol='S): String = 
+   // Generate a string from a starting symbol `sym`
+   def generate(sym: String="S"): String = 
       if (!(g contains sym))
-          sym.name
+          sym
       else {
           val rhs = g(sym)
           rhs(Random.nextInt(rhs.size)).map(generate).mkString(" ")
@@ -26,20 +22,18 @@ class Grammar(pairs: (Symbol,String)*) {
    case class Terminal(str: String) extends Tree
    case class NonTerminal(cat: String, expansion: Seq[Tree]) extends Tree
 
-   // Replace symbol with a random entry in g (recursively); 
-   // return a tree.
-   def generateTree(sym: Symbol='S): Tree = 
+   // Generate a tree from a starting symbol `sym`:
+   def generateTree(sym: String="S"): Tree = 
       if (!(g contains sym))
-          Terminal(sym.name)
+          Terminal(sym)
       else {
           val rhs = g(sym)
           val chosen = rhs(Random.nextInt(rhs.size)).toList
-          NonTerminal(sym.name, chosen.map(generateTree))
+          NonTerminal(sym, chosen.map(generateTree))
       }
 }
 
 object Main extends App {
-
    val grammar = new Grammar(
         'S   -> "NP VP",
         'NP  -> "Art N",
