@@ -35,12 +35,14 @@ class Grammar(pairs: (Symbol,String)*) {
 
 object Main extends App {
    val grammar = new Grammar(
-        'S   -> "NP VP",
-        'NP  -> "Art N",
-        'VP  -> "V NP",
-        'Art -> "the | a",
-        'N   -> "man | ball | woman | table",
-        'V   -> "hit | took | saw | liked")
+       'S    -> "NP VP | S and S",
+       'NP   -> "Art N | Name",
+       'VP   -> "V NP",
+       'Art  -> "the | a | every | some",
+       'N    -> "man | ball | woman | table | dog | cat | wombat",
+       'V    -> "hit | took | saw | liked | worshiped | remembered",
+       'Name -> "Alice | Bob | Carlos | Dan | Eve"
+   )
    
    // one advantage we have over the python version is, 
    // thanks to case classes and Lists, the tree prints 
