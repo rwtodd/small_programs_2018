@@ -8,7 +8,7 @@ directory should have its own readme.  Enjoy!
  - __bishop puzzle__: Solve the 7th Guest bishops puzzle
  - __cgaify__: Dither an image down to vintage DOS-era palettes
  - __img hillclimb__: Generate an approximation of an image via random shapes
- - __random sentence__: Scala version of Norvig's random sentence generator
+ - __random sentence__: Scala/C++ versions of Norvig's random sentence generator
  - __read win7 recycle bin__: a script to decode the hashed filenames in `C:\$Recycle.Bin\`
  - __sdl lua play__: just playing with C+Lua+SDL (mandlebrot)
 

@@ -2,6 +2,7 @@
 #include<string>
 #include<iostream>
 #include<sstream>
+#include<iterator>
 #include<algorithm>
 #include "select.hh"
 
@@ -12,27 +13,19 @@ struct rule {
    vector<string> expansions;
 };
 
-string expand(vector<rule> &g, const string &s) {
-   istringstream in {s};
-   ostringstream out;
-   bool first = true;
-   while(in) {
-      string word;
-      in >> word;
-      if(word.size() == 0) break;
-      if(!first) { out << ' '; }
-
-      auto term = find_if(begin(g), end(g), [&](rule &r) { return r.name == word; });
+template<typename O>
+void expand(const vector<rule> &g, const string &s, O &tgt) {
+   istringstream strm { s };
+   istream_iterator<string> eos, in { strm };
+   for_each(in, eos, [&](const string &word) {
+      auto term = find_if(begin(g), end(g), [&](const rule &r) { return r.name == word; });
       if(term != end(g)) {
          auto selected = select_randomly(begin(term->expansions), end(term->expansions));  
-         out << expand(g, *selected);
+         expand(g, *selected, tgt);
       } else {
-         out << word;
+         *tgt++ = word;
       }
-
-      first = false;
-   }
-   return out.str();
+   });
 }
 
 int main(int argc, char **argv) {
@@ -46,6 +39,8 @@ int main(int argc, char **argv) {
        { "Name" , { "Alice", "Bob", "Carlos", "Dan", "Eve" } }
    };
 
-  cout << expand(grammar, "S") << endl;
+  ostream_iterator<string> oit(cout, " ");
+  expand(grammar, "S", oit);
+  cout << endl;
   return 0;
 }
