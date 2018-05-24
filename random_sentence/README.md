@@ -36,21 +36,22 @@ val grammar = new Grammar(
 
 ... and C++ only fared slightly worse:
 
-```c++
-vector<rule> grammar { 
-    { "S"    , { "NP VP", "S and S" } },
-    { "NP"   , { "Art N", "Name" } },
-    { "VP"   , { "V NP" } },
-    { "Art"  , { "the", "a", "every", "some" } },
-    { "N"    , { "man", "ball", "woman", "table", "dog", "cat", "wombat" } },
-    { "V"    , { "hit", "took", "saw", "liked", "worshiped", "remembered" } },
-    { "Name" , { "Alice", "Bob", "Carlos", "Dan", "Eve" } }
+```cpp
+grammar g { 
+    { "S"   , { "NP VP" } },
+    { "NP"  , { "Art N" } },
+    { "VP"  , { "V NP" } },
+    { "Art" , { "the", "a" } },
+    { "N"   , { "man", "ball", "woman", "table" } },
+    { "V"   , { "hit", "took", "saw", "liked" } }
 };
 ```
 
-Also, I should mention that when I run the python tree
-generator in Python 3.6, it just tells me about a `map object`,
-but thanks to scala's case classes and Lists I get a readable
+The c++ version is the most different, but still very concise.
+
+Maybe Python2 was different, but when I run the python tree
+generator in Python 3.6, it just tells me about a `map object`.
+Thanks to scala's case classes and Lists I get a readable
 output for the tree.
 
 [1]: http://norvig.com/python-lisp.html
