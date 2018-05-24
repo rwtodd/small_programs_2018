@@ -4,23 +4,20 @@
 #include<sstream>
 #include<iterator>
 #include<algorithm>
+#include<map>
 #include "select.hh"
 
 using namespace std;
-
-struct rule {
-   string name;
-   vector<string> expansions;
-};
+using grammar = map<string, vector<string>>; // Map from NonTerminal to Expansions
 
 template<typename O>
-void expand(const vector<rule> &g, const string &s, O &tgt) {
+void expand(const grammar &g, const string &s, O &tgt) {
    istringstream strm { s };
    istream_iterator<string> eos, in { strm };
-   for_each(in, eos, [&](const string &word) {
-      auto term = find_if(begin(g), end(g), [&](const rule &r) { return r.name == word; });
-      if(term != end(g)) {
-         auto selected = select_randomly(begin(term->expansions), end(term->expansions));  
+   for_each(in, eos, [&](auto &word) {
+      auto term = g.find(word);
+      if(term != g.end()) {
+         auto selected = select_randomly(begin(term->second), end(term->second));
          expand(g, *selected, tgt);
       } else {
          *tgt++ = word;
@@ -29,7 +26,7 @@ void expand(const vector<rule> &g, const string &s, O &tgt) {
 }
 
 int main(int argc, char **argv) {
-   vector<rule> grammar { 
+   grammar g {
        { "S"    , { "NP VP", "S and S" } },
        { "NP"   , { "Art N", "Name" } },
        { "VP"   , { "V NP" } },
@@ -40,7 +37,7 @@ int main(int argc, char **argv) {
    };
 
   ostream_iterator<string> oit(cout, " ");
-  expand(grammar, "S", oit);
+  expand(g, "S", oit);
   cout << endl;
   return 0;
 }
