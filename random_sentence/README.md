@@ -2,12 +2,14 @@
 
 I ran across Peter Norvig's page [comparing lisp and python][1],
 and wanted to see how a scala version would look.  Then, for extra
-fun, I made a c++ version and a Rust version (non-tree only).
+fun, I made a Rust version and a c++ version (the latter doesn't do
+the tree part--only sentence gen).
 
 I think they turned out
-pretty well.  In scala, the biggest difference is that I have to define
-what I mean by "Tree" for the type system's benefit.  Otherwise,
-I was easily able to match the grammar definition syntax
+pretty well.  In scala and Rust, the biggest difference is that I have to define
+what I mean by "Tree" for the type system's benefit.  
+
+In scala and c++, I was easily able to approximate the grammar definition syntax
 provided by Norvig's idiomatic python example:
 
 Python:
@@ -34,7 +36,7 @@ val grammar = new Grammar(
      'V   -> "hit | took | saw | liked")
 ```
 
-... and C++ only fared slightly worse:
+C++:
 
 ```cpp
 grammar g {
@@ -63,10 +65,10 @@ grammar.insert("V"   , vec!["hit","took","saw","liked"]);
 
 ## On the Trees
 
-The scala version implements the tree function for comparison
+The scala and Rust versions implement the tree function for comparison
 with the original. Maybe Python2 was different, but when I run
 the python tree generator in Python 3.6, it just tells me
-about a `map object`.  Thanks to scala's case classes and
-Lists I get a readable output for the tree.
+about a `map object`.  However, scala has printable `case class`es, and
+Rust can `#[derive(Debug)]`, so I get a readable output for the tree.
 
 [1]: http://norvig.com/python-lisp.html
