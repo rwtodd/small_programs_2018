@@ -2,12 +2,12 @@
 
 I ran across Peter Norvig's page [comparing lisp and python][1],
 and wanted to see how a scala version would look.  Then, for extra
-fun, I made a c++ version (non-tree only).
+fun, I made a c++ version and a Rust version (non-tree only).
 
 I think they turned out
 pretty well.  In scala, the biggest difference is that I have to define
 what I mean by "Tree" for the type system's benefit.  Otherwise,
-I was easily able to match the grammar definition syntax 
+I was easily able to match the grammar definition syntax
 provided by Norvig's idiomatic python example:
 
 Python:
@@ -37,7 +37,7 @@ val grammar = new Grammar(
 ... and C++ only fared slightly worse:
 
 ```cpp
-grammar g { 
+grammar g {
     { "S"   , { "NP VP" } },
     { "NP"  , { "Art N" } },
     { "VP"  , { "V NP" } },
@@ -47,11 +47,26 @@ grammar g {
 };
 ```
 
-The c++ version is the most different, but still very concise.
+... and in Rust I know it's possible to make things nicer
+with macros, but as of this writing I'm more comfortable just
+using plain calls:
 
-Maybe Python2 was different, but when I run the python tree
-generator in Python 3.6, it just tells me about a `map object`.
-Thanks to scala's case classes and Lists I get a readable
-output for the tree.
+```rust
+let mut grammar = HashMap::new();
+grammar.insert("S"   , vec!["NP VP"]);
+grammar.insert("NP"  , vec!["Art N"]);
+grammar.insert("VP"  , vec!["V NP"]);
+grammar.insert("Art" , vec!["the","a"]);
+grammar.insert("N"   , vec!["man","ball","woman","table"]);
+grammar.insert("V"   , vec!["hit","took","saw","liked"]);
+```
+
+## On the Trees
+
+The scala version implements the tree function for comparison
+with the original. Maybe Python2 was different, but when I run
+the python tree generator in Python 3.6, it just tells me
+about a `map object`.  Thanks to scala's case classes and
+Lists I get a readable output for the tree.
 
 [1]: http://norvig.com/python-lisp.html
