@@ -1,19 +1,15 @@
 extern crate rand;
-use std::collections::HashMap;
 
+use std::collections::HashMap;
 use rand::prelude::*;
 
 fn expand(g: &HashMap<&str,Vec<&str>>, k: &str, out: &mut Vec<String>) {
     match g.get(k) {
-       Some(rhs) => {
-          thread_rng().choose(&rhs)
-                      .unwrap()
-                      .split_whitespace()
-                      .for_each(|word| expand(g, word, out)); 
-       }
-       None => {
-          out.push(k.to_string());
-       }
+       Some(rhs) => thread_rng().choose(&rhs)
+                                .unwrap()
+                                .split_whitespace()
+                                .for_each(|word| expand(g, word, out)),
+       None      => out.push(k.to_string())
     }
 }
 
