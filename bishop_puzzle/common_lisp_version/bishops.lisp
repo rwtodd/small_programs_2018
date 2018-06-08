@@ -8,11 +8,11 @@
 
 (defun starting-board ()
   "create the starting board"
-  (let ((b (empty-board)))
-    (loop :for i :from 0 :below (array-dimension b 0) :by +cols+
-	  :do (setf (aref b i) 1
-		    (aref b (+ i +cols+ -1)) 2)
-	  :finally (return b))))
+  (loop :with b = (empty-board)
+	:for i :from 0 :below (array-dimension b 0) :by +cols+
+	:do (setf (aref b i) 1
+		  (aref b (+ i +cols+ -1)) 2)
+	:finally (return b)))
 
 (defun invert-board (b)
   (loop :for i :from 0 :below (array-dimension b 0)
@@ -77,13 +77,13 @@
 
 (defun attacked-spaces (b)
   "return a new board showing all attacked spaces"
-  (let ((answer (empty-board)))
-    (flet ((or-space (i p) (setf (aref answer i)
-				 (logior (aref answer i) p))))
-      (loop :for i :from 0 :below (array-dimension b 0)
-	    :as p = (aref b i) :when (> p 0)
-	    :do (or-space i p) (bishop-for-each i #'(lambda (j) (or-space j p)))
-	    :finally (return answer)))))
+  (let ((answer (copy-seq b)))
+    (loop :for i :from 0 :below (array-dimension b 0)
+	  :as p = (aref b i) :when (> p 0)
+	  :do (bishop-for-each i #'(lambda (j)
+				     (setf (aref answer j)
+					   (logior (aref answer j) p))))
+	  :finally (return answer))))
 
 (defstruct bmove board parent won move)
 
@@ -96,9 +96,9 @@
 			;; the final space is not attacked...
 			(zerop (logand (- 3 p) (aref attacked j)))
 			;; all the spaces in the move are empty...
-			(let ((delta (board-delta j i)))
-			  (loop :for x = j :then (+ x delta)
-				:until (= x i) :always (zerop (aref b x)))))))
+			(loop :with delta = (board-delta j i)
+			      :for x = j :then (+ x delta)
+			      :until (= x i) :always (zerop (aref b x))))))
       (loop :for i :from 0 :below (array-dimension b 0)
 	    :as p = (aref b i) :when (> p 0)
 	    :do (bishop-for-each i
