@@ -1,0 +1,6 @@
+[package]
+name = "bishops"
+version = "1.0.0"
+authors = ["Richard Todd <rwtodd@users.noreply.github.com>"]
+
+[dependencies]

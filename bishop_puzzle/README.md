@@ -27,8 +27,11 @@ though, I re-coded it in Scala, which was about 7x faster on the given
 problem.  As a bonus, the Scala version lets you choose different 
 board sizes on the command-line.
 
-A while later, I implemented the program in common lisp, which is the
-fastest version of all (solves the 4x6 puzzle in 2 seconds versus 7 in scala).
+A while later, I implemented the program in common lisp, which was 
+faster (it solves the 4x6 puzzle in 2 seconds versus 7 in scala).
+
+Shortly after that, I implemented the program in rust, which was even
+faster (it solves the 4x6 puzzle in 0.6 seconds).
 
 If you are curious: the program uses a basic breadth-first search of the
 possibilities, and so is guaranteed to get the shortest solution, which
