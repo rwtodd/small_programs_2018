@@ -26,7 +26,7 @@
 (defun winning-board () (invert-board (starting-board)))
 
 (defun hash-board (b)
-  (declare (optimize (speed 3) (safety 0)) 
+  (declare (optimize (speed 3) (debug 0) (safety 0)) 
            (type (simple-array (unsigned-byte 2) *) b))
   (loop :for v :of-type (unsigned-byte 2) :across b
 	:for tot :of-type (unsigned-byte 64) = v :then (logior v (the (unsigned-byte 64) (ash tot 2)))
@@ -60,7 +60,7 @@
    diagonally to j"
   (declare (optimize (speed 3) (safety 0))
            (type fixnum i j))
-  (let ((diff (- j i)))
+  (let ((diff (the fixnum (- j i))))
     (* (signum diff) (+ +cols+
 			(if (zerop (mod diff (+ +cols+ 1))) 1 -1)))))
 
@@ -77,13 +77,13 @@
          (yc (- last-row cy)))
     (declare (type (unsigned-byte 64) cx cy last-row last-col xc yc))
     (loop :for i :of-type (unsigned-byte 64) 
-          :from (+ (max (- cx cy) 0) (* +cols+ (max (- cy cx) 0)))
+          :from  (+ (max (- cx cy) 0)  (the (unsigned-byte 8) (* +cols+ (max (- cy cx) 0))))
           :to   (+ (min (+ cx yc) last-col) (* +cols+ (min (+ cy xc) last-row)))
           :by (+ +cols+ 1) 
           :when (not (= i center))
           :do (funcall action i))
     (loop :for i :of-type (unsigned-byte 64) 
-          :from (+ (min (+ cx cy) last-col) (* +cols+ (max (- cy xc) 0)))
+          :from (+ (min (+ cx cy) last-col) (the (unsigned-byte 8) (* +cols+ (max (- cy xc) 0))))
           :to   (+ (max (- cx yc) 0) (* +cols+ (min (+ cy cx) last-row)))
           :by (- +cols+ 1) 
           :when (not (= i center))
@@ -105,12 +105,11 @@
   (board  nil :type (simple-array (unsigned-byte 2) *)  :read-only t)
   (parent nil :read-only t)
   (won    nil :type boolean :read-only t)
-  (move   nil :type list :read-only t)
-  )
+  (move   nil :type list :read-only t))
 
 (defun push-next-moves (m result)
   "generate the moves that could follow m, and push them onto result"
-  (declare (optimize (speed 3) (safety 0))
+  (declare (optimize (speed 3) (debug 0) (safety 0))
            (type bmove m)
            (type (array bmove) result))
   (let* ((b (bmove-board m))
@@ -133,7 +132,7 @@
 					       (aref nb i) 0)
 					 (multiple-value-bind (seen won) (seen-p nb)
 					   (unless seen
-					     (vector-push-extend (make-bmove :board nb :parent m :won won :move (list i j))
+					     (vector-push-extend (make-bmove :board nb :parent m :won won :move (cons i j))
 								 result)))))))))))
 
 (defun print-bmoves (m)
@@ -146,10 +145,11 @@
 	  :do (print-board (bmove-board x))
 	  (if (bmove-move x)
 	      (format t "~%~s to ~s~2%"
-		      (square (first (bmove-move x)))
-		      (square (second (bmove-move x))))))))
+		      (square (car (bmove-move x)))
+		      (square (cdr (bmove-move x))))))))
 
 (defun run-game ()
+  (clrhash *seen-boards*)
   (loop :for moves = 0 :then (+ moves 1)
         :for backlog = (vector (make-bmove :board (starting-board)
 					   :parent nil
