@@ -1,36 +1,37 @@
-;; note-- load the file and then compile it to fasl, so
-;; that the compiler knows about `winning-board`.  I'm sure
-;; there is a way around this with `eval-when` but I haven't
-;; tried to work around it.
-(defconstant +rows+ 4)
-(defconstant +cols+ 7)
+;; evaluate the board-definition stuff at compile-time, so
+;; that the constant for +winning-hash+ can be computed at
+;; compile-time.
+(eval-when (:compile-toplevel :load-toplevel)
+  (defconstant +rows+ 4)
+  (defconstant +cols+ 7)
 
-(defun empty-board ()
-  (make-array (* +rows+ +cols+)
-	      :element-type '(unsigned-byte 2)
-	      :initial-element 0))
+  (defun empty-board ()
+    (make-array (* +rows+ +cols+)
+		:element-type '(unsigned-byte 2)
+		:initial-element 0))
 
-(defun starting-board ()
-  "create the starting board"
-  (loop :with b = (empty-board)
-	:for i :from 0 :below (array-dimension b 0) :by +cols+
-	:do (setf (aref b i) 1
-		  (aref b (+ i +cols+ -1)) 2)
-	:finally (return b)))
+  (defun starting-board ()
+    "create the starting board"
+    (loop :with b = (empty-board)
+	  :for i :from 0 :below (array-dimension b 0) :by +cols+
+	  :do (setf (aref b i) 1
+		    (aref b (+ i +cols+ -1)) 2)
+	  :finally (return b)))
 
-(defun invert-board (b)
-  (loop :for i :from 0 :below (array-dimension b 0)
-	:when (> (aref b i) 0) :do (setf (aref b i) (- 3 (aref b i)))
-	:finally (return b)))
+  (defun invert-board (b)
+    (loop :for i :from 0 :below (array-dimension b 0)
+	  :when (> (aref b i) 0) :do (setf (aref b i) (- 3 (aref b i)))
+	  :finally (return b)))
 
-(defun winning-board () (invert-board (starting-board)))
+  (defun winning-board () (invert-board (starting-board)))
 
-(defun hash-board (b)
-  (declare (optimize (speed 3) (debug 0) (safety 0)) 
-           (type (simple-array (unsigned-byte 2) *) b))
-  (loop :for v :of-type (unsigned-byte 2) :across b
-	:for tot :of-type (unsigned-byte 64) = v :then (logior v (the (unsigned-byte 64) (ash tot 2)))
-	:finally (return tot)))
+  (defun hash-board (b)
+    (declare (optimize (speed 3) (debug 0) (safety 0)) 
+             (type (simple-array (unsigned-byte 2) *) b))
+    (loop :for v :of-type (unsigned-byte 2) :across b
+	  :for tot :of-type (unsigned-byte 64) = v :then (logior v (the (unsigned-byte 64) (ash tot 2)))
+	  :finally (return tot)))
+)
 
 (defconstant +winning-hash+ (hash-board (winning-board)))
 
