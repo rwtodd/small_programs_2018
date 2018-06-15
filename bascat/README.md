@@ -4,7 +4,9 @@
 There are actually a fair amount of .BAS files out there in the default tokenized
 format, but you'd need a working GWBASIC/BASICA to see the source.
 
-I installed this python version as a module `toys.y2018.bascat`.
+There are two versions here... in python and common-lisp.  See below for a list of
+other versions I've written.  I installed the python version as a module
+`toys.y2018.bascat`.
 
 ## Unprotect Feature
 
