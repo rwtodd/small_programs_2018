@@ -4,9 +4,9 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.ArrayBuffer
 
 class GameContext(val rows : Int, val cols : Int) {
-   private val seenCache = Set[BigInt]()
-   def seen(hash: BigInt) = seenCache contains hash
-   def add(hash: BigInt) = seenCache add hash
+   private val seenCache = Set[Long]()
+   def seen(hash: Long) = seenCache contains hash
+   def add(hash: Long) = seenCache add hash
    override def toString() = s"$rows by $cols Search (${seenCache.size} boards considered)"
 }
 
@@ -27,11 +27,11 @@ class Board(val parent: Board,
        ap
    }
 
-   val hash = places.foldLeft(BigInt(0)) { (h,p) => (h << 2) | p }
+   val hash = places.foldLeft(0L) { (h,p) => (h << 2) | p }
 
    private def clearPath(idx1: Int, idx2: Int): Boolean = 
-      (idx2 until idx1 by Board.delta(idx2,idx1)).forall(places(_) == 0) &&
-      (3-places(idx1) & attacks(idx2)) == 0
+      ((3-places(idx1) & attacks(idx2)) == 0) &&
+      (idx2 until idx1 by Board.delta(idx2,idx1)).forall(places(_) == 0) 
 
    def tryMove(attempt: Board.Move) : Option[Board] = {
       val (idx1,idx2) = attempt
