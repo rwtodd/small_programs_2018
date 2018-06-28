@@ -9,8 +9,10 @@ in multiple languages for comparison.  Enjoy!
  - __bishop puzzle__: Solve the 7th Guest bishops puzzle.
  - __cgaify__: Dither an image down to vintage DOS-era palettes
  - __img hillclimb__: Generate an approximation of an image via random shapes
+ - __lisp-w32-console__: Fill the screen with random chars via `cffi` and `kernel32.dll`.
  - __random sentence__: Scala/C++/Rust versions of Norvig's random sentence generator
  - __read win7 recycle bin__: a script to decode the hashed filenames in `C:\$Recycle.Bin\`
+ - __rust win32 console__: Fill the screen with random chars via `ffi` and `kernel32.dll`.
  - __sdl lua play__: just playing with C+Lua+SDL (mandlebrot)
 
  
