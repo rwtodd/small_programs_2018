@@ -6,7 +6,8 @@
 ;;  - decide whether to fix it so U's stack up
 ;; ------------------------------------------------------------------------
 
-(require 'seq) ; sequence functions like seq-filter
+(require 'cl)  ; #'some
+(require 'seq) ; sequence functions like #'seq-filter
 
 (defvar modal-cmd-arg nil "arg so far")
 (defvar modal-cmd-so-far nil "keymaps in play so far for a command")
