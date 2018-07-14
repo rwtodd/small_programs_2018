@@ -4,9 +4,8 @@
 There are actually a fair amount of .BAS files out there in the default tokenized
 format, but you'd need a working GWBASIC/BASICA to see the source.
 
-There are two versions here... in python and common-lisp.  See below for a list of
-other versions I've written.  I installed the python version as a module
-`toys.y2018.bascat`.
+There are three versions here... in python, java, and common-lisp.  See below for a list of
+other versions I've written.  
 
 ## Unprotect Feature
 
@@ -30,7 +29,5 @@ I've written BasCat in multiple languages as a learning exercise.
 
  - Go [Go.Bascat repo](https://github.com/rwtodd/Go.Bascat)
  - Scala (in a private repo)
- - Java (in a private repo)
  - JavaScript  (in a private repo)
  - Kotlin [Kotlin.BasCat repo](https://github.com/rwtodd/Kotlin.BasCat)
-
