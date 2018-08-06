@@ -15,9 +15,9 @@ build: mods
 	${JAVAC} -d mods --module-source-path=src $$(find src -name "*.java")
 
 dist: mlib
-	${JAR} --create --file=mlib/com.darktalents.cmd.bascat.jar \
-      -e com.darktalents.cmd.bascat.Cmd \
-      -C mods/com.darktalents.cmd.bascat . 
+	${JAR} --create --file=mlib/org.rwtodd.cmd.bascat.jar \
+      -e org.rwtodd.cmd.bascat.Cmd \
+      -C mods/org.rwtodd.cmd.bascat . 
 
 clean:
 	rm -rf mods mlib

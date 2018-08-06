@@ -2,9 +2,7 @@
  * This code is released under the GPL. A copy of the licence is in this
  * program's main directory.
  */
-package com.darktalents.cmd.bascat;
-
-import java.util.function.IntSupplier;
+package org.rwtodd.cmd.bascat;
 
 /**
  * A decrypter for protected BAS files.
@@ -19,42 +17,31 @@ import java.util.function.IntSupplier;
  * mean that as the 11-index goes from 0 to 10, the reversed index goes from 11 to 1.
  * @author richard todd
  */
-final class Unprotector implements IntSupplier {
-    private final IntSupplier ins;
-
+final class Unprotector {
     private final static int[] key13 = { 0xA9, 0x84, 0x8D, 0xCD, 0x75, 0x83, 
                                   0x43, 0x63, 0x24, 0x83, 0x19, 0xF7, 0x9A };
     private final static int[] key11 = { 0x1E, 0x1D, 0xC4, 0x77, 0x26, 
                                          0x97, 0xE0, 0x74, 0x59, 0x88, 0x7C };
 
-    private int idx13;
-    private int idx11;
+    public static byte[] unprotect(byte[] src) {
+      int idx13 = 0;
+      int idx11 = 0;
+      int ans = 0;
 
-    
-    public Unprotector(IntSupplier input) {
-        ins = input;  
-        idx13 = 0;
-        idx11 = 0;
+      src[0] = (byte)0xff; // no more need to unprotect
+      for(int idx = 1; idx < src.length; idx++) { 
+         ans = src[idx] & 0xff; 
+         ans -= 11 - idx11;
+         ans ^= key11[idx11];
+         ans ^= key13[idx13];
+         ans += 13 - idx13;
+         src[idx] = (byte)ans; 
+       
+         idx11++;
+         idx13++;
+         if(idx11 == 11) { idx11 = 0;}  
+         if(idx13 == 13) { idx13 = 0;}  
+      }
+      return src;
     }
-    
-    @Override
-    public int getAsInt() {
-      int ans;
-      ans = ins.getAsInt();
-      
-      if (ans == -1) return ans;  /* EOF */
-      
-      ans -= 11 - idx11;
-      ans ^= key11[idx11];
-      ans ^= key13[idx13];
-      ans += 13 - idx13;
-      
-      idx11++;
-      idx13++;
-      if(idx11 == 11) { idx11 = 0;}  
-      if(idx13 == 13) { idx13 = 0;}  
-
-      return (ans & 0xFF);
-    }
-    
 }
